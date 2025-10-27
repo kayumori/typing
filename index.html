@@ -14,94 +14,92 @@ const RetroTypingShooter = () => {
   const bgmIntervalRef = useRef(null);
   const bgmOscillatorsRef = useRef([]);
 
-  // ここから修正された allSentences 配列
   const allSentences = [
     { text: 'おはよう', romaji: 'OHAYOU' },
-    { text: 'こんにちは', romaji: 'KONNNITIHA' },
-    { text: 'こんばんは', romaji: 'KONNBANHA' },
+    { text: 'こんにちは', romaji: 'KONNICHIHA' },
+    { text: 'こんばんは', romaji: 'KONBANHA' },
     { text: 'ありがとう', romaji: 'ARIGATOU' },
-    { text: 'ごめんなさい', romaji: 'GOMENNNASAI' },
-    { text: 'すみません', romaji: 'SUMIMASENN' },
+    { text: 'ごめんなさい', romaji: 'GOMENNASAI' },
+    { text: 'すみません', romaji: 'SUMIMASEN' },
     { text: 'いただきます', romaji: 'ITADAKIMASU' },
-    { text: 'ごちそうさま', romaji: 'GOTISOUSAMA' },
+    { text: 'ごちそうさま', romaji: 'GOCHISOUSAMA' },
     { text: 'ただいま', romaji: 'TADAIMA' },
     { text: 'おかえり', romaji: 'OKAERI' },
-    { text: '今日はいい天気ですね', romaji: 'KYOUHAIITENNKIDESUNE' },
-    { text: 'お元気ですか', romaji: 'OGENNKIDESUKA' },
-    { text: 'はじめまして', romaji: 'HAJIMEMASITE' },
-    { text: 'よろしくお願いします', romaji: 'YOROSIKUONEGAISIMASU' },
-    { text: 'お疲れ様です', romaji: 'OTUKARESAMADESU' },
+    { text: '今日はいい天気ですね', romaji: 'KYOUHAIITENKIDESUNE' },
+    { text: 'お元気ですか', romaji: 'OGENKIDESUKA' },
+    { text: 'はじめまして', romaji: 'HAJIMEMASHITE' },
+    { text: 'よろしくお願いします', romaji: 'YOROSHIKUONEGAISHIMASU' },
+    { text: 'お疲れ様です', romaji: 'OTSUKARESAMA' },
     { text: 'いってきます', romaji: 'ITTEKIMASU' },
-    { text: 'いってらっしゃい', romaji: 'ITTERASSYAI' },
+    { text: 'いってらっしゃい', romaji: 'ITTERASSHAI' },
     { text: 'おやすみなさい', romaji: 'OYASUMINASAI' },
-    { text: 'お誕生日おめでとう', romaji: 'OTANNJOUBIOMEDETO' },
-    { text: 'がんばって', romaji: 'GANNBATTE' },
+    { text: 'お誕生日おめでとう', romaji: 'OTANJOUBIOMEDETO' },
+    { text: 'がんばって', romaji: 'GANBATTE' },
     { text: 'お大事に', romaji: 'ODAIJINI' },
-    { text: '失礼します', romaji: 'SITUREISIMASU' },
-    { text: 'どういたしまして', romaji: 'DOUITASIMASITE' },
-    { text: 'お待たせしました', romaji: 'OMATASESIMASITA' },
-    { text: '申し訳ございません', romaji: 'MOUSIWAKEGOZAIMASENN' },
-    { text: '了解しました', romaji: 'RYOUKAISIMASITA' },
-    { text: '承知しました', romaji: 'SYOUTISIMASITA' },
-    { text: '確認します', romaji: 'KAKUNINNSIMASU' },
-    { text: 'お先に失礼します', romaji: 'OSAKINISITUREISIMASU' },
-    { text: '今日も一日頑張りましょう', romaji: 'KYOUMOITINITIGANNBARIMASYOU' },
-    { text: 'いい天気ですね', romaji: 'IITENNKIDESUNE' },
-    { text: 'お久しぶりです', romaji: 'OHISASIBURIDESU' },
+    { text: '失礼します', romaji: 'SHITSUREISHIMASU' },
+    { text: 'どういたしまして', romaji: 'DOUITASHIMASHITE' },
+    { text: 'お待たせしました', romaji: 'OMATASESHIMASHITA' },
+    { text: '申し訳ございません', romaji: 'MOUSHIWAKEGOZAIMASEN' },
+    { text: '了解しました', romaji: 'RYOUKAISHIMASHITA' },
+    { text: '承知しました', romaji: 'SHOUCHISHIMASHITA' },
+    { text: '確認します', romaji: 'KAKUNINSHIMASU' },
+    { text: 'お先に失礼します', romaji: 'OSAKINI' },
+    { text: '今日も一日頑張りましょう', romaji: 'KYOUMOICHINICHIGANBARIMASHOU' },
+    { text: 'いい天気ですね', romaji: 'IITENKIDESUNE' },
+    { text: 'お久しぶりです', romaji: 'OHISASHIBURIDESU' },
     { text: 'また会いましょう', romaji: 'MATAAIMASYOU' },
-    { text: 'お気をつけて', romaji: 'OKIWOTUKETE' },
-    { text: 'ご無沙汰しております', romaji: 'GOBUSATASITEIORIMASU' },
-    { text: '楽しみにしています', romaji: 'TANOSIMINISITEMASU' },
-    { text: 'どうぞお入りください', romaji: 'DOUZOOHAIRIKUDASAI' },
-    { text: 'かしこまりました', romaji: 'KASIKOMARIMASITA' },
-    { text: 'お手数おかけします', romaji: 'OTESUUOKAKESIMASU' },
-    { text: 'ご連絡ありがとうございます', romaji: 'GORENRAKUARIGATOUGOZAIMASU' },
-    { text: '素敵な一日を', romaji: 'SUTEKINAITINITIWO' },
+    { text: 'お気をつけて', romaji: 'OKIOTSUKETE' },
+    { text: 'ご無沙汰しております', romaji: 'GOBUSATASHITEIMASU' },
+    { text: '楽しみにしています', romaji: 'TANOSHIMINISHITEIMASU' },
+    { text: 'どうぞお入りください', romaji: 'DOUZOOHAIRI' },
+    { text: 'かしこまりました', romaji: 'KASHIKOMARIMASHITA' },
+    { text: 'お手数おかけします', romaji: 'OTESUUOKAKESHIMASU' },
+    { text: 'ご連絡ありがとうございます', romaji: 'GORENRAKUARIGATOU' },
+    { text: '素敵な一日を', romaji: 'SUTEKINAICHINICHIWO' },
     { text: '頑張ってください', romaji: 'GANBATTEKUDASAI' },
-    { text: 'お会いできて嬉しいです', romaji: 'OAIDEKITEURESIIDESU' },
-    { text: 'ありがとうございました', romaji: 'ARIGATOGOZAIMASITA' },
+    { text: 'お会いできて嬉しいです', romaji: 'OAIDEKITEURESHIIDESU' },
+    { text: 'ありがとうございました', romaji: 'ARIGATOUGOZAIMASHITA' },
     { text: 'どうもありがとう', romaji: 'DOUMOARIGATOU' },
-    { text: 'とても美味しいです', romaji: 'TOTEMOOISIIDESU' },
-    { text: 'お腹が空きました', romaji: 'ONAKAGASUKIMASITA' },
-    { text: 'お水をください', romaji: 'OMIZUOWOKUDASAI' },
-    { text: 'お会計お願いします', romaji: 'OKAIKEIONEGAISIMASU' },
-    { text: 'お時間ありますか', romaji: 'OJIKANARIMASUKA' },
-    { text: 'もう一度お願いします', romaji: 'MOUITIDOONEGAISIMASU' },
-    { text: '少々お待ちください', romaji: 'SYOUSYOOOMATIKUDASAI' },
+    { text: 'とても美味しいです', romaji: 'TOTEOMOOISHIIDESU' },
+    { text: 'お腹が空きました', romaji: 'ONAKAGASUKIMASHITA' },
+    { text: 'お水をください', romaji: 'OMIZUOKUDASAI' },
+    { text: 'お会計お願いします', romaji: 'OKAIKEIONEGAISHIMASU' },
+    { text: 'お時間ありますか', romaji: 'OJIKANARIMASU' },
+    { text: 'もう一度お願いします', romaji: 'MOUITIDOONEGAISHIMASU' },
+    { text: '少々お待ちください', romaji: 'SHOUSHOUOMACHI' },
     { text: '本当にありがとう', romaji: 'HONTOUNIARIGATOU' },
-    { text: '大変申し訳ありません', romaji: 'TAIHENMOUSIWAKEARIMASENN' },
-    { text: 'よくわかりません', romaji: 'YOKUWAKARIMASEN' },
-    { text: 'もう少しゆっくりお願いします', romaji: 'MOUSUKOSIYUKKURIONEGAISIMASU' },
-    { text: '素晴らしいですね', romaji: 'SUBARASIIDESUNE' },
+    { text: '大変申し訳ありません', romaji: 'TAIHENMOUSHIWAKE' },
+    { text: 'よくわかりません', romaji: 'YOKUWAKARIMNASEN' },
+    { text: 'もう少しゆっくりお願いします', romaji: 'MOUSUKOSHIYUKKURI' },
+    { text: '素晴らしいですね', romaji: 'SUBARASHIIDESU' },
     { text: 'それは面白いですね', romaji: 'SOREHAOMOSIROIDESUNE' },
-    { text: 'とても楽しかったです', romaji: 'TOTEMOTANOSIKATTADESU' },
+    { text: 'とても楽しかったです', romaji: 'TOTEMOTANOSHIKATTA' },
     { text: 'また来ます', romaji: 'MATAKIMASU' },
-    { text: 'お見舞い申し上げます', romaji: 'OMIMAIMOUSIAGEMASU' },
-    { text: 'お体に気をつけて', romaji: 'OKARADANIKIWOTSUKETE' },
-    { text: 'どうぞご自愛ください', romaji: 'DOUZOGOZIAIKUDASAI' },
-    { text: '心よりお祈りしています', romaji: 'KOKOROYORIOINORISITEIMASU' },
-    { text: 'お仕事頑張ってください', romaji: 'OSIGOTOGANBATTEKUDASAI' },
-    { text: '応援しています', romaji: 'OUENSITEIMASU' },
-    { text: '成功をお祈りします', romaji: 'SEIKOUWOOINORISIMASU' },
-    { text: 'いつもありがとうございます', romaji: 'ITUMOARIGATOUGOZAIMASU' },
-    { text: 'お陰様で元気です', romaji: 'OKAGESAMADEGENKIDESU' },
-    { text: '順調に進んでいます', romaji: 'JUNTYOUNISUSUNDEIMASU' },
-    { text: 'お力添えありがとうございます', romaji: 'OTIKARAZOEARIGATOUGOZAIMASU' },
-    { text: 'ご協力感謝します', romaji: 'GOKYOURYOKUKANSYASIMASU' },
-    { text: 'また機会がありましたら', romaji: 'MATAKIKAIGARIMASITARA' },
-    { text: 'これからもよろしく', romaji: 'KOREKARAMOYOROSIKU' },
-    { text: '今後ともよろしくお願いします', romaji: 'KONGOTOMOYOROSIKUONEGAISIMASU' },
+    { text: 'お見舞い申し上げます', romaji: 'OMIMAIMOUSHIAGEMASU' },
+    { text: 'お体に気をつけて', romaji: 'OKARADANIKIOTSUKETE' },
+    { text: 'どうぞご自愛ください', romaji: 'DOUZOJIAI' },
+    { text: '心よりお祈りしています', romaji: 'KOKOROYORIOINO' },
+    { text: 'お仕事頑張ってください', romaji: 'OSHIGOTOGANBATTE' },
+    { text: '応援しています', romaji: 'OUENSHITEIMASU' },
+    { text: '成功をお祈りします', romaji: 'SEIKOUWOOINORI' },
+    { text: 'いつもありがとうございます', romaji: 'ITSUMOARIGATOU' },
+    { text: 'お陰様で元気です', romaji: 'OKAGESAMADEGENKI' },
+    { text: '順調に進んでいます', romaji: 'JUNCHOUNISUSU' },
+    { text: 'お力添えありがとうございます', romaji: 'OCHIKARAZOEARIGATOU' },
+    { text: 'ご協力感謝します', romaji: 'GOKYOURYOKUKANSHA' },
+    { text: 'また機会がありましたら', romaji: 'MATAKIKAIGARIMASHITARA' },
+    { text: 'これからもよろしく', romaji: 'KOREKARAMOYOROSHIKU' },
+    { text: '今後ともよろしくお願いします', romaji: 'KONGOTOMOYOROSHIKU' },
     { text: 'お世話になりました', romaji: 'OSEWANINARIMASITA' },
-    { text: 'お世話になっております', romaji: 'OSEWANINATTEORIMASU' },
-    { text: 'お忙しいところすみません', romaji: 'OISOGASIITOKOROSUMIMASEN' },
-    { text: 'お時間をいただきありがとうございます', romaji: 'OJIKANWOITADAKIARIGATOUGOZAIMASU' },
-    { text: 'ご都合はいかがですか', romaji: 'GOTUGOUHAIKAGADESUKA' },
-    { text: 'ご検討よろしくお願いします', romaji: 'GOKENTOUYOROSIKUONEGAISIMASU' },
-    { text: 'ご理解いただけますと幸いです', romaji: 'GORIKAIITADAKEMASUTOSAIWAIDESU' },
-    { text: 'お返事お待ちしております', romaji: 'OHENNJIOOMATISITEORIMASU' },
-    { text: '取り急ぎご連絡まで', romaji: 'TORIISOGIGORENNRAKUMADE' }
+    { text: 'お世話になっております', romaji: 'OSEWANINARIMASU' },
+    { text: 'お忙しいところすみません', romaji: 'OISOGASHIITOKORO' },
+    { text: 'お時間をいただきありがとうございます', romaji: 'OJIKANWOITADAKI' },
+    { text: 'ご都合はいかがですか', romaji: 'GOTSUGOUHAIKAGA' },
+    { text: 'ご検討よろしくお願いします', romaji: 'GOKENTOUYOROSHIKU' },
+    { text: 'ご理解いただけますと幸いです', romaji: 'GORIKAIITADAKEMASU' },
+    { text: 'お返事お待ちしております', romaji: 'OHENJIOMACHI' },
+    { text: '取り急ぎご連絡まで', romaji: 'TORIISOGIGORENRAKU' }
   ];
-  // ここまで修正された allSentences 配列
 
   const getAudioContext = () => {
     if (!audioContextRef.current) {
@@ -157,12 +155,11 @@ const RetroTypingShooter = () => {
   };
 
   const startBGM = () => {
-    stopBGM();
-    console.log('BGM starting...');
+    stopBGM(); // 既存のBGMを停止
     try {
       const ctx = getAudioContext();
-      console.log('Audio context created');
       
+      // レトロRPG風のメロディパターン
       const melodyPattern = [
         523.25, 587.33, 659.25, 587.33, 523.25, 493.88, 523.25, 587.33,
         659.25, 698.46, 659.25, 587.33, 523.25, 493.88, 523.25, 440.00
@@ -171,7 +168,7 @@ const RetroTypingShooter = () => {
       let currentNoteIndex = 0;
       
       const playBGMNote = () => {
-        console.log('Playing note:', currentNoteIndex);
+        // 古い音を停止
         bgmOscillatorsRef.current.forEach(osc => {
           try {
             osc.stop();
@@ -181,24 +178,26 @@ const RetroTypingShooter = () => {
         
         const freq = melodyPattern[currentNoteIndex % melodyPattern.length];
         
+        // メイン音
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'triangle';
         osc1.frequency.value = freq;
-        gain1.gain.value = 0.02;
+        gain1.gain.value = 0.01;
         osc1.connect(gain1);
         gain1.connect(ctx.destination);
-        osc1.start(ctx.currentTime);
+        osc1.start();
         osc1.stop(ctx.currentTime + 0.4);
         
+        // ハーモニー（オクターブ下）
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
         osc2.frequency.value = freq * 0.5;
-        gain2.gain.value = 0.015;
+        gain2.gain.value = 0.008;
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
-        osc2.start(ctx.currentTime);
+        osc2.start();
         osc2.stop(ctx.currentTime + 0.4);
         
         bgmOscillatorsRef.current.push(osc1, osc2);
@@ -208,9 +207,8 @@ const RetroTypingShooter = () => {
       
       playBGMNote();
       bgmIntervalRef.current = setInterval(playBGMNote, 350);
-      console.log('BGM interval set');
     } catch (e) {
-      console.error('BGM error:', e);
+      console.log('BGM error:', e);
     }
   };
 
