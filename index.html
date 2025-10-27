@@ -14,6 +14,7 @@ const RetroTypingShooter = () => {
   const bgmIntervalRef = useRef(null);
   const bgmOscillatorsRef = useRef([]);
 
+  // ここから修正された allSentences 配列
   const allSentences = [
     { text: 'おはよう', romaji: 'OHAYOU' },
     { text: 'こんにちは', romaji: 'KONNNITIHA' },
@@ -100,6 +101,7 @@ const RetroTypingShooter = () => {
     { text: 'お返事お待ちしております', romaji: 'OHENNJIOOMATISITEORIMASU' },
     { text: '取り急ぎご連絡まで', romaji: 'TORIISOGIGORENNRAKUMADE' }
   ];
+  // ここまで修正された allSentences 配列
 
   const getAudioContext = () => {
     if (!audioContextRef.current) {
