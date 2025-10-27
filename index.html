@@ -6,18 +6,18 @@ const RetroTypingShooter = () => {
   const [score, setScore] = useState(0);
   const [stage, setStage] = useState(1);
   const [defeatedCount, setDefeatedCount] = useState(0);
-  const [enemies, setEnemies] = useState([]); // enemyの状態はゲームループ内で直接更新されるため、refで管理する方が良い場合もあるが、Reactの哲学に従いstateとする。
+  const [enemies, setEnemies] = useState([]); // enemiesはReactのstateで管理
   const canvasRef = useRef(null);
-  const animationFrameIdRef = useRef(null); // requestAnimationFrameのIDを格納
+  const animationFrameIdRef = useRef(null);
   const gameTimeRef = useRef(0);
   const audioContextRef = useRef(null);
   const bgmIntervalRef = useRef(null);
   const bgmOscillatorsRef = useRef([]);
 
-  // 現在の敵のリストを安全に取得するためのref (ゲームループ内でstateを直接参照すると古い値になる可能性があるため)
-  const enemiesRef = useRef(enemies);
+  // handleKeyPressのようなイベントハンドラで最新のenemiesを参照するためのref
+  const enemiesForEventHandlerRef = useRef(enemies);
   useEffect(() => {
-    enemiesRef.current = enemies;
+    enemiesForEventHandlerRef.current = enemies;
   }, [enemies]);
 
   const allSentences = [
@@ -118,7 +118,7 @@ const RetroTypingShooter = () => {
     try {
       const ctx = getAudioContext();
       if (ctx.state === 'suspended') {
-        ctx.resume(); // 一部のブラウザでAudioContextが中断されている場合があるので再開
+        ctx.resume();
       }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -130,7 +130,7 @@ const RetroTypingShooter = () => {
       gain.gain.value = volume;
       
       osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration); // フェードアウトを滑らかに
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
       osc.stop(ctx.currentTime + duration);
     } catch (e) {
       console.log('Audio error:', e);
@@ -142,7 +142,7 @@ const RetroTypingShooter = () => {
   }, []);
 
   const playTypeSound = useCallback(() => {
-    playSound(1200, 0.05, 'square', 0.05); // 打鍵音は少し小さめに
+    playSound(1200, 0.05, 'square', 0.05);
   }, []);
 
   const playDefeatSound = useCallback(() => {
@@ -165,7 +165,6 @@ const RetroTypingShooter = () => {
 
   const startBGM = useCallback(() => {
     stopBGM();
-    console.log('BGM starting...');
     try {
       const ctx = getAudioContext();
       if (ctx.state === 'suspended') {
@@ -183,9 +182,7 @@ const RetroTypingShooter = () => {
         bgmOscillatorsRef.current.forEach(osc => {
           try {
             osc.stop();
-          } catch(e) {
-            // stopping already stopped oscillator throws error, ignore
-          }
+          } catch(e) {}
         });
         bgmOscillatorsRef.current = [];
         
@@ -204,7 +201,7 @@ const RetroTypingShooter = () => {
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
-        osc2.frequency.value = freq * 0.5; // オクターブ下
+        osc2.frequency.value = freq * 0.5;
         gain2.gain.value = 0.015;
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
@@ -221,7 +218,7 @@ const RetroTypingShooter = () => {
     } catch (e) {
       console.error('BGM error:', e);
     }
-  }, []); // 依存配列は空でOK、refを使っているため
+  }, [stopBGM]);
 
   const stopBGM = useCallback(() => {
     if (bgmIntervalRef.current) {
@@ -246,8 +243,7 @@ const RetroTypingShooter = () => {
     ctx.font = `bold ${size}px "Courier New", monospace`;
     ctx.textAlign = 'center';
     
-    // ドット絵風の影を描画
-    ctx.fillStyle = '#000'; // 影の色
+    ctx.fillStyle = '#000';
     for (let dx = -1; dx <= 1; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
         if (dx !== 0 || dy !== 0) {
@@ -270,7 +266,7 @@ const RetroTypingShooter = () => {
       [0,0,1,0,0]
     ];
     
-    ctx.fillStyle = '#ff0000'; // 敵の色
+    ctx.fillStyle = '#ff0000';
     pattern.forEach((row, dy) => {
       row.forEach((pixel, dx) => {
         if (pixel) {
@@ -285,56 +281,11 @@ const RetroTypingShooter = () => {
     });
   };
 
-  // ゲームループ本体をuseCallbackでラップし、不要な再生成を防ぐ
-  const gameLoop = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) { // キャンバスがない場合は何もしない
-      animationFrameIdRef.current = requestAnimationFrame(gameLoop); // 再度試行
-      return;
-    }
-    const ctx = canvas.getContext('2d');
-    
-    gameTimeRef.current += 1;
-    
-    // 敵の生成ロジック
-    const spawnInterval = Math.max(180, 400 - stage * 20); // 敵の出現間隔を短く、難易度調整
-    if (gameTimeRef.current % spawnInterval === 0 && enemiesRef.current.length === 0) { // enemiesRef.currentを使用
-      const availableSentences = getSentencesForStage(stage);
-      if (availableSentences.length > 0) {
-        const sentence = availableSentences[Math.floor(Math.random() * availableSentences.length)];
-        const newEnemy = {
-          id: Date.now(),
-          word: sentence.romaji,
-          japanese: sentence.text,
-          x: canvas.width / 2, // 画面中央に出現
-          y: -30, // 画面上部から出現
-          speed: 0.8 + stage * 0.1, // 敵の速度を調整
-          typed: ''
-        };
-        setEnemies(prev => [...prev, newEnemy]);
-      }
-    }
+  // 描画ロジックを分離
+  const drawGame = useCallback((ctx, currentEnemies, currentScore, currentStage) => {
+    const canvas = ctx.canvas;
 
-    setEnemies(prev => {
-      const updated = prev.map(enemy => ({
-        ...enemy,
-        y: enemy.y + enemy.speed
-      }));
-
-      // 衝突判定
-      const collision = updated.some(enemy => enemy.y > canvas.height - 50);
-
-      if (collision) {
-        stopBGM();
-        playGameOverSound();
-        setGameState('gameover');
-        return []; // ゲームオーバーになったら敵をリセット
-      }
-
-      return updated.filter(enemy => enemy.y < canvas.height); // 画面外に出た敵は削除
-    });
-
-    // 描画
+    // キャンバスを毎回クリア
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -371,24 +322,20 @@ const RetroTypingShooter = () => {
     ctx.moveTo(0, canvas.height - 50);
     ctx.lineTo(canvas.width, canvas.height - 50);
     ctx.stroke();
-    ctx.setLineDash([]); // リセット
+    ctx.setLineDash([]);
 
     // 敵の描画とテキスト
-    enemiesRef.current.forEach(enemy => { // enemiesRef.currentを使用
+    currentEnemies.forEach(enemy => {
       drawEnemyShip(ctx, enemy.x, enemy.y);
 
-      // 日本語のテキスト
       drawDotText(ctx, enemy.japanese, enemy.x, enemy.y + 45, 20, '#ffffff');
 
-      // 入力済みローマ字と残りローマ字
-      const typedTextWidth = enemy.typed.length * 10; // 調整が必要かもしれません
-      const remainingTextWidth = (enemy.word.length - enemy.typed.length) * 10;
+      // テキストの描画位置を調整
+      const typedWidth = enemy.typed.length * 7; // 文字の幅に応じて調整
+      const remainingWidth = (enemy.word.length - enemy.typed.length) * 7;
 
-      // 入力済み部分
-      drawDotText(ctx, enemy.typed, enemy.x - (remainingTextWidth / 2) - 5, enemy.y - 30, 14, '#00ff00');
-      
-      // 残りの部分
-      drawDotText(ctx, enemy.word.substring(enemy.typed.length), enemy.x + (typedTextWidth / 2) + 5, enemy.y - 30, 14, '#ffffff');
+      drawDotText(ctx, enemy.typed, enemy.x - remainingWidth / 2 - 5, enemy.y - 30, 14, '#00ff00');
+      drawDotText(ctx, enemy.word.substring(enemy.typed.length), enemy.x + typedWidth / 2 + 5, enemy.y - 30, 14, '#ffffff');
     });
 
     // UIパネル
@@ -398,43 +345,109 @@ const RetroTypingShooter = () => {
     ctx.lineWidth = 2;
     ctx.strokeRect(10, 10, 180, 55);
     
-    drawDotText(ctx, `SCORE:${score}`, 100, 30, 14, '#00ff00');
-    drawDotText(ctx, `STAGE:${stage}`, 100, 50, 14, '#00ffff');
+    drawDotText(ctx, `SCORE:${currentScore}`, 100, 30, 14, '#00ff00');
+    drawDotText(ctx, `STAGE:${currentStage}`, 100, 50, 14, '#00ffff');
+  }, []); // 依存配列は空でOK、ゲーム状態は引数で渡すため
 
+
+  const gameLoop = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    
+    gameTimeRef.current += 1;
+    
+    // 敵の生成
+    setEnemies(prevEnemies => {
+      if (gameTimeRef.current % Math.max(180, 400 - stage * 20) === 0 && prevEnemies.length === 0) {
+        const availableSentences = getSentencesForStage(stage);
+        if (availableSentences.length > 0) {
+          const sentence = availableSentences[Math.floor(Math.random() * availableSentences.length)];
+          const newEnemy = {
+            id: Date.now(),
+            word: sentence.romaji,
+            japanese: sentence.text,
+            x: canvas.width / 2,
+            y: -30,
+            speed: 0.8 + stage * 0.1,
+            typed: ''
+          };
+          return [...prevEnemies, newEnemy];
+        }
+      }
+      return prevEnemies;
+    });
+
+    // 敵の位置更新と衝突判定
+    setEnemies(prevEnemies => {
+      const updated = prevEnemies.map(enemy => ({
+        ...enemy,
+        y: enemy.y + enemy.speed
+      }));
+
+      const collision = updated.some(enemy => enemy.y > canvas.height - 50);
+
+      if (collision) {
+        stopBGM();
+        playGameOverSound();
+        setGameState('gameover');
+        return [];
+      }
+
+      return updated.filter(enemy => enemy.y < canvas.height);
+    });
+
+    // 描画はuseEffectで行う
     animationFrameIdRef.current = requestAnimationFrame(gameLoop);
-  }, [score, stage, stopBGM, playGameOverSound, startBGM, getSentencesForStage]); // scoreとstageを依存配列に追加
+  }, [stage, stopBGM, playGameOverSound, getSentencesForStage]); // gameLoopはstageに依存
+
+  // 描画専用のuseEffect
+  useEffect(() => {
+    if (gameState === 'playing') {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      
+      // 描画関数を呼び出す
+      drawGame(ctx, enemies, score, stage);
+    }
+  }, [enemies, score, stage, gameState, drawGame]); // enemies, score, stageが更新されたら再描画
 
   useEffect(() => {
     if (gameState === 'playing') {
       const canvas = canvasRef.current;
-      if (!canvas) return; // canvas要素が存在しない場合は何もしない
+      if (!canvas) return;
 
-      // BGMをゲーム開始時に一度だけ開始
       startBGM();
-      
-      // ゲームループを開始
       animationFrameIdRef.current = requestAnimationFrame(gameLoop);
 
       return () => {
-        // コンポーネントがアンマウントされるか、gameStateがplayingでなくなった場合にクリーンアップ
         if (animationFrameIdRef.current) {
           cancelAnimationFrame(animationFrameIdRef.current);
         }
         stopBGM();
       };
     } else {
-      // playing状態ではない場合はBGMを停止
       stopBGM();
+      // ゲームオーバー画面など、playing以外の状態では描画を停止
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+        animationFrameIdRef.current = null;
+      }
     }
-  }, [gameState, gameLoop, startBGM, stopBGM]); // gameLoopとstartBGMを依存配列に追加
+  }, [gameState, gameLoop, startBGM, stopBGM]);
 
   const handleKeyPress = useCallback((e) => {
-    if (gameState !== 'playing' || enemiesRef.current.length === 0) return; // enemiesRef.currentを使用
+    // イベントハンドラでは常に最新のstateを参照するためrefを使用
+    if (gameState !== 'playing' || enemiesForEventHandlerRef.current.length === 0) return;
 
     const key = e.key.toUpperCase();
     
     if (key.length === 1 && key.match(/[A-Z]/)) {
-      const currentEnemies = enemiesRef.current; // 最新の敵リストを取得
+      const currentEnemies = enemiesForEventHandlerRef.current;
       const enemy = currentEnemies[0];
       const expectedChar = enemy.word[enemy.typed.length];
       
@@ -449,13 +462,12 @@ const RetroTypingShooter = () => {
             if (newDefeated >= 10) {
               setStage(s => s + 1);
               playStageUpSound();
-              return 0; // 0にリセット
+              return 0;
             }
             return newDefeated;
           });
-          setScore(s => s + 200 + stage * 50); // scoreとstageは最新のstateが自動的に参照される
-          setEnemies([]); // 敵を撃破したのでリストから削除
-          // 敵が全ていなくなった後、新しい敵が生成されるのはgameLoopの責務
+          setScore(s => s + 200 + stage * 50);
+          setEnemies([]);
         } else {
           setEnemies(prev => prev.map(e => e.id === enemy.id ? { ...e, typed: newTyped } : e));
         }
@@ -465,12 +477,12 @@ const RetroTypingShooter = () => {
         setGameState('gameover');
       }
     }
-  }, [gameState, mode, playTypeSound, playDefeatSound, playGameOverSound, playStageUpSound, stopBGM, stage]); // stageを依存配列に追加
+  }, [gameState, mode, playTypeSound, playDefeatSound, playGameOverSound, playStageUpSound, stopBGM, stage]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleKeyPress]); // handleKeyPressを依存配列に追加
+  }, [handleKeyPress]);
 
   const startGame = (selectedMode) => {
     playMenuSelectSound();
@@ -480,7 +492,7 @@ const RetroTypingShooter = () => {
       setScore(0);
       setStage(1);
       setDefeatedCount(0);
-      setEnemies([]);
+      setEnemies([]); // ゲーム開始時に敵をリセット
       gameTimeRef.current = 0;
     }, 150);
   };
