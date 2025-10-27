@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const RetroTypingShooter = () => {
   const [gameState, setGameState] = useState('menu');
@@ -6,13 +6,19 @@ const RetroTypingShooter = () => {
   const [score, setScore] = useState(0);
   const [stage, setStage] = useState(1);
   const [defeatedCount, setDefeatedCount] = useState(0);
-  const [enemies, setEnemies] = useState([]);
+  const [enemies, setEnemies] = useState([]); // enemyの状態はゲームループ内で直接更新されるため、refで管理する方が良い場合もあるが、Reactの哲学に従いstateとする。
   const canvasRef = useRef(null);
-  const animationRef = useRef(null);
+  const animationFrameIdRef = useRef(null); // requestAnimationFrameのIDを格納
   const gameTimeRef = useRef(0);
   const audioContextRef = useRef(null);
   const bgmIntervalRef = useRef(null);
   const bgmOscillatorsRef = useRef([]);
+
+  // 現在の敵のリストを安全に取得するためのref (ゲームループ内でstateを直接参照すると古い値になる可能性があるため)
+  const enemiesRef = useRef(enemies);
+  useEffect(() => {
+    enemiesRef.current = enemies;
+  }, [enemies]);
 
   const allSentences = [
     { text: 'おはよう', romaji: 'OHAYOU' },
@@ -50,55 +56,55 @@ const RetroTypingShooter = () => {
     { text: 'また会いましょう', romaji: 'MATAAIMASYOU' },
     { text: 'お気をつけて', romaji: 'OKIWOTUKETE' },
     { text: 'ご無沙汰しております', romaji: 'GOBUSATASITEIORIMASU' },
-{ text: '楽しみにしています', romaji: 'TANOSIMINISITEMASU' },
-{ text: 'どうぞお入りください', romaji: 'DOUZOOHAIRIKUDASAI' },
-{ text: 'かしこまりました', romaji: 'KASIKOMARIMASITA' },
-{ text: 'お手数おかけします', romaji: 'OTESUUOKAKESIMASU' },
-{ text: 'ご連絡ありがとうございます', romaji: 'GORENRAKUARIGATOUGOZAIMASU' },
-{ text: '素敵な一日を', romaji: 'SUTEKINAITINITIWO' },
-{ text: '頑張ってください', romaji: 'GANBATTEKUDASAI' },
-{ text: 'お会いできて嬉しいです', romaji: 'OAIDEKITEURESIIDESU' },
-{ text: 'ありがとうございました', romaji: 'ARIGATOGOZAIMASITA' },
-{ text: 'どうもありがとう', romaji: 'DOUMOARIGATOU' },
-{ text: 'とても美味しいです', romaji: 'TOTEMOOISIIDESU' },
-{ text: 'お腹が空きました', romaji: 'ONAKAGASUKIMASITA' },
-{ text: 'お水をください', romaji: 'OMIZUOWOKUDASAI' },
-{ text: 'お会計お願いします', romaji: 'OKAIKEIONEGAISIMASU' },
-{ text: 'お時間ありますか', romaji: 'OJIKANARIMASUKA' },
-{ text: 'もう一度お願いします', romaji: 'MOUITIDOONEGAISIMASU' },
-{ text: '少々お待ちください', romaji: 'SYOUSYOOOMATIKUDASAI' },
-{ text: '本当にありがとう', romaji: 'HONTOUNIARIGATOU' },
-{ text: '大変申し訳ありません', romaji: 'TAIHENMOUSIWAKEARIMASENN' },
-{ text: 'よくわかりません', romaji: 'YOKUWAKARIMASEN' },
-{ text: 'もう少しゆっくりお願いします', romaji: 'MOUSUKOSIYUKKURIONEGAISIMASU' },
-{ text: '素晴らしいですね', romaji: 'SUBARASIIDESUNE' },
-{ text: 'それは面白いですね', romaji: 'SOREHAOMOSIROIDESUNE' },
-{ text: 'とても楽しかったです', romaji: 'TOTEMOTANOSIKATTADESU' },
-{ text: 'また来ます', romaji: 'MATAKIMASU' },
-{ text: 'お見舞い申し上げます', romaji: 'OMIMAIMOUSIAGEMASU' },
-{ text: 'お体に気をつけて', romaji: 'OKARADANIKIWOTSUKETE' },
-{ text: 'どうぞご自愛ください', romaji: 'DOUZOGOZIAIKUDASAI' },
-{ text: '心よりお祈りしています', romaji: 'KOKOROYORIOINORISITEIMASU' },
-{ text: 'お仕事頑張ってください', romaji: 'OSIGOTOGANBATTEKUDASAI' },
-{ text: '応援しています', romaji: 'OUENSITEIMASU' },
-{ text: '成功をお祈りします', romaji: 'SEIKOUWOOINORISIMASU' },
-{ text: 'いつもありがとうございます', romaji: 'ITUMOARIGATOUGOZAIMASU' },
-{ text: 'お陰様で元気です', romaji: 'OKAGESAMADEGENKIDESU' },
-{ text: '順調に進んでいます', romaji: 'JUNTYOUNISUSUNDEIMASU' },
-{ text: 'お力添えありがとうございます', romaji: 'OTIKARAZOEARIGATOUGOZAIMASU' },
-{ text: 'ご協力感謝します', romaji: 'GOKYOURYOKUKANSYASIMASU' },
-{ text: 'また機会がありましたら', romaji: 'MATAKIKAIGARIMASITARA' },
-{ text: 'これからもよろしく', romaji: 'KOREKARAMOYOROSIKU' },
-{ text: '今後ともよろしくお願いします', romaji: 'KONGOTOMOYOROSIKUONEGAISIMASU' },
-{ text: 'お世話になりました', romaji: 'OSEWANINARIMASITA' },
-{ text: 'お世話になっております', romaji: 'OSEWANINATTEORIMASU' },
-{ text: 'お忙しいところすみません', romaji: 'OISOGASIITOKOROSUMIMASEN' },
-{ text: 'お時間をいただきありがとうございます', romaji: 'OJIKANWOITADAKIARIGATOUGOZAIMASU' },
-{ text: 'ご都合はいかがですか', romaji: 'GOTUGOUHAIKAGADESUKA' },
-{ text: 'ご検討よろしくお願いします', romaji: 'GOKENTOUYOROSIKUONEGAISIMASU' },
-{ text: 'ご理解いただけますと幸いです', romaji: 'GORIKAIITADAKEMASUTOSAIWAIDESU' },
-{ text: 'お返事お待ちしております', romaji: 'OHENNJIOOMATISITEORIMASU' },
-{ text: '取り急ぎご連絡まで', romaji: 'TORIISOGIGORENNRAKUMADE' }
+    { text: '楽しみにしています', romaji: 'TANOSIMINISITEMASU' },
+    { text: 'どうぞお入りください', romaji: 'DOUZOOHAIRIKUDASAI' },
+    { text: 'かしこまりました', romaji: 'KASIKOMARIMASITA' },
+    { text: 'お手数おかけします', romaji: 'OTESUUOKAKESIMASU' },
+    { text: 'ご連絡ありがとうございます', romaji: 'GORENRAKUARIGATOUGOZAIMASU' },
+    { text: '素敵な一日を', romaji: 'SUTEKINAITINITIWO' },
+    { text: '頑張ってください', romaji: 'GANBATTEKUDASAI' },
+    { text: 'お会いできて嬉しいです', romaji: 'OAIDEKITEURESIIDESU' },
+    { text: 'ありがとうございました', romaji: 'ARIGATOGOZAIMASITA' },
+    { text: 'どうもありがとう', romaji: 'DOUMOARIGATOU' },
+    { text: 'とても美味しいです', romaji: 'TOTEMOOISIIDESU' },
+    { text: 'お腹が空きました', romaji: 'ONAKAGASUKIMASITA' },
+    { text: 'お水をください', romaji: 'OMIZUOWOKUDASAI' },
+    { text: 'お会計お願いします', romaji: 'OKAIKEIONEGAISIMASU' },
+    { text: 'お時間ありますか', romaji: 'OJIKANARIMASUKA' },
+    { text: 'もう一度お願いします', romaji: 'MOUITIDOONEGAISIMASU' },
+    { text: '少々お待ちください', romaji: 'SYOUSYOOOMATIKUDASAI' },
+    { text: '本当にありがとう', romaji: 'HONTOUNIARIGATOU' },
+    { text: '大変申し訳ありません', romaji: 'TAIHENMOUSIWAKEARIMASENN' },
+    { text: 'よくわかりません', romaji: 'YOKUWAKARIMASEN' },
+    { text: 'もう少しゆっくりお願いします', romaji: 'MOUSUKOSIYUKKURIONEGAISIMASU' },
+    { text: '素晴らしいですね', romaji: 'SUBARASIIDESUNE' },
+    { text: 'それは面白いですね', romaji: 'SOREHAOMOSIROIDESUNE' },
+    { text: 'とても楽しかったです', romaji: 'TOTEMOTANOSIKATTADESU' },
+    { text: 'また来ます', romaji: 'MATAKIMASU' },
+    { text: 'お見舞い申し上げます', romaji: 'OMIMAIMOUSIAGEMASU' },
+    { text: 'お体に気をつけて', romaji: 'OKARADANIKIWOTSUKETE' },
+    { text: 'どうぞご自愛ください', romaji: 'DOUZOGOZIAIKUDASAI' },
+    { text: '心よりお祈りしています', romaji: 'KOKOROYORIOINORISITEIMASU' },
+    { text: 'お仕事頑張ってください', romaji: 'OSIGOTOGANBATTEKUDASAI' },
+    { text: '応援しています', romaji: 'OUENSITEIMASU' },
+    { text: '成功をお祈りします', romaji: 'SEIKOUWOOINORISIMASU' },
+    { text: 'いつもありがとうございます', romaji: 'ITUMOARIGATOUGOZAIMASU' },
+    { text: 'お陰様で元気です', romaji: 'OKAGESAMADEGENKIDESU' },
+    { text: '順調に進んでいます', romaji: 'JUNTYOUNISUSUNDEIMASU' },
+    { text: 'お力添えありがとうございます', romaji: 'OTIKARAZOEARIGATOUGOZAIMASU' },
+    { text: 'ご協力感謝します', romaji: 'GOKYOURYOKUKANSYASIMASU' },
+    { text: 'また機会がありましたら', romaji: 'MATAKIKAIGARIMASITARA' },
+    { text: 'これからもよろしく', romaji: 'KOREKARAMOYOROSIKU' },
+    { text: '今後ともよろしくお願いします', romaji: 'KONGOTOMOYOROSIKUONEGAISIMASU' },
+    { text: 'お世話になりました', romaji: 'OSEWANINARIMASITA' },
+    { text: 'お世話になっております', romaji: 'OSEWANINATTEORIMASU' },
+    { text: 'お忙しいところすみません', romaji: 'OISOGASIITOKOROSUMIMASEN' },
+    { text: 'お時間をいただきありがとうございます', romaji: 'OJIKANWOITADAKIARIGATOUGOZAIMASU' },
+    { text: 'ご都合はいかがですか', romaji: 'GOTUGOUHAIKAGADESUKA' },
+    { text: 'ご検討よろしくお願いします', romaji: 'GOKENTOUYOROSIKUONEGAISIMASU' },
+    { text: 'ご理解いただけますと幸いです', romaji: 'GORIKAIITADAKEMASUTOSAIWAIDESU' },
+    { text: 'お返事お待ちしております', romaji: 'OHENNJIOOMATISITEORIMASU' },
+    { text: '取り急ぎご連絡まで', romaji: 'TORIISOGIGORENNRAKUMADE' }
   ];
 
   const getAudioContext = () => {
@@ -108,9 +114,12 @@ const RetroTypingShooter = () => {
     return audioContextRef.current;
   };
 
-  const playSound = (frequency, duration, type = 'square') => {
+  const playSound = (frequency, duration, type = 'square', volume = 0.1) => {
     try {
       const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume(); // 一部のブラウザでAudioContextが中断されている場合があるので再開
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -118,48 +127,50 @@ const RetroTypingShooter = () => {
       osc.frequency.value = frequency;
       osc.connect(gain);
       gain.connect(ctx.destination);
-      gain.gain.value = 0.1;
+      gain.gain.value = volume;
       
       osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration); // フェードアウトを滑らかに
       osc.stop(ctx.currentTime + duration);
     } catch (e) {
       console.log('Audio error:', e);
     }
   };
 
-  const playMenuSelectSound = () => {
+  const playMenuSelectSound = useCallback(() => {
     playSound(880, 0.1);
-  };
+  }, []);
 
-  const playTypeSound = () => {
-    playSound(1200, 0.05);
-  };
+  const playTypeSound = useCallback(() => {
+    playSound(1200, 0.05, 'square', 0.05); // 打鍵音は少し小さめに
+  }, []);
 
-  const playDefeatSound = () => {
+  const playDefeatSound = useCallback(() => {
     playSound(440, 0.1);
     setTimeout(() => playSound(880, 0.1), 100);
     setTimeout(() => playSound(1320, 0.2), 200);
-  };
+  }, []);
 
-  const playGameOverSound = () => {
+  const playGameOverSound = useCallback(() => {
     playSound(400, 0.2);
     setTimeout(() => playSound(350, 0.2), 200);
     setTimeout(() => playSound(300, 0.3), 400);
-  };
+  }, []);
 
-  const playStageUpSound = () => {
+  const playStageUpSound = useCallback(() => {
     playSound(523, 0.1);
     setTimeout(() => playSound(659, 0.1), 100);
     setTimeout(() => playSound(784, 0.2), 200);
-  };
+  }, []);
 
-  const startBGM = () => {
+  const startBGM = useCallback(() => {
     stopBGM();
     console.log('BGM starting...');
     try {
       const ctx = getAudioContext();
-      console.log('Audio context created');
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
       
       const melodyPattern = [
         523.25, 587.33, 659.25, 587.33, 523.25, 493.88, 523.25, 587.33,
@@ -169,11 +180,12 @@ const RetroTypingShooter = () => {
       let currentNoteIndex = 0;
       
       const playBGMNote = () => {
-        console.log('Playing note:', currentNoteIndex);
         bgmOscillatorsRef.current.forEach(osc => {
           try {
             osc.stop();
-          } catch(e) {}
+          } catch(e) {
+            // stopping already stopped oscillator throws error, ignore
+          }
         });
         bgmOscillatorsRef.current = [];
         
@@ -192,7 +204,7 @@ const RetroTypingShooter = () => {
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
-        osc2.frequency.value = freq * 0.5;
+        osc2.frequency.value = freq * 0.5; // オクターブ下
         gain2.gain.value = 0.015;
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
@@ -206,13 +218,12 @@ const RetroTypingShooter = () => {
       
       playBGMNote();
       bgmIntervalRef.current = setInterval(playBGMNote, 350);
-      console.log('BGM interval set');
     } catch (e) {
       console.error('BGM error:', e);
     }
-  };
+  }, []); // 依存配列は空でOK、refを使っているため
 
-  const stopBGM = () => {
+  const stopBGM = useCallback(() => {
     if (bgmIntervalRef.current) {
       clearInterval(bgmIntervalRef.current);
       bgmIntervalRef.current = null;
@@ -223,7 +234,7 @@ const RetroTypingShooter = () => {
       } catch(e) {}
     });
     bgmOscillatorsRef.current = [];
-  };
+  }, []);
 
   const getSentencesForStage = (stageNum) => {
     const length = Math.min(15 + stageNum * 3, 40);
@@ -235,7 +246,8 @@ const RetroTypingShooter = () => {
     ctx.font = `bold ${size}px "Courier New", monospace`;
     ctx.textAlign = 'center';
     
-    ctx.fillStyle = '#000';
+    // ドット絵風の影を描画
+    ctx.fillStyle = '#000'; // 影の色
     for (let dx = -1; dx <= 1; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
         if (dx !== 0 || dy !== 0) {
@@ -258,7 +270,7 @@ const RetroTypingShooter = () => {
       [0,0,1,0,0]
     ];
     
-    ctx.fillStyle = '#ff0000';
+    ctx.fillStyle = '#ff0000'; // 敵の色
     pattern.forEach((row, dy) => {
       row.forEach((pixel, dx) => {
         if (pixel) {
@@ -273,128 +285,157 @@ const RetroTypingShooter = () => {
     });
   };
 
+  // ゲームループ本体をuseCallbackでラップし、不要な再生成を防ぐ
+  const gameLoop = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) { // キャンバスがない場合は何もしない
+      animationFrameIdRef.current = requestAnimationFrame(gameLoop); // 再度試行
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    
+    gameTimeRef.current += 1;
+    
+    // 敵の生成ロジック
+    const spawnInterval = Math.max(180, 400 - stage * 20); // 敵の出現間隔を短く、難易度調整
+    if (gameTimeRef.current % spawnInterval === 0 && enemiesRef.current.length === 0) { // enemiesRef.currentを使用
+      const availableSentences = getSentencesForStage(stage);
+      if (availableSentences.length > 0) {
+        const sentence = availableSentences[Math.floor(Math.random() * availableSentences.length)];
+        const newEnemy = {
+          id: Date.now(),
+          word: sentence.romaji,
+          japanese: sentence.text,
+          x: canvas.width / 2, // 画面中央に出現
+          y: -30, // 画面上部から出現
+          speed: 0.8 + stage * 0.1, // 敵の速度を調整
+          typed: ''
+        };
+        setEnemies(prev => [...prev, newEnemy]);
+      }
+    }
+
+    setEnemies(prev => {
+      const updated = prev.map(enemy => ({
+        ...enemy,
+        y: enemy.y + enemy.speed
+      }));
+
+      // 衝突判定
+      const collision = updated.some(enemy => enemy.y > canvas.height - 50);
+
+      if (collision) {
+        stopBGM();
+        playGameOverSound();
+        setGameState('gameover');
+        return []; // ゲームオーバーになったら敵をリセット
+      }
+
+      return updated.filter(enemy => enemy.y < canvas.height); // 画面外に出た敵は削除
+    });
+
+    // 描画
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 背景の星
+    ctx.fillStyle = '#444';
+    for (let i = 0; i < 100; i++) {
+      const x = (i * 79) % canvas.width;
+      const y = ((i * 113) + gameTimeRef.current * 0.15) % canvas.height;
+      const size = (i % 3) + 1;
+      ctx.fillRect(x, y, size, size);
+    }
+
+    // グリッド線
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 50) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+    }
+    for (let i = 0; i < canvas.height; i += 50) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(canvas.width, i);
+      ctx.stroke();
+    }
+
+    // プレイヤーエリアの線
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 50);
+    ctx.lineTo(canvas.width, canvas.height - 50);
+    ctx.stroke();
+    ctx.setLineDash([]); // リセット
+
+    // 敵の描画とテキスト
+    enemiesRef.current.forEach(enemy => { // enemiesRef.currentを使用
+      drawEnemyShip(ctx, enemy.x, enemy.y);
+
+      // 日本語のテキスト
+      drawDotText(ctx, enemy.japanese, enemy.x, enemy.y + 45, 20, '#ffffff');
+
+      // 入力済みローマ字と残りローマ字
+      const typedTextWidth = enemy.typed.length * 10; // 調整が必要かもしれません
+      const remainingTextWidth = (enemy.word.length - enemy.typed.length) * 10;
+
+      // 入力済み部分
+      drawDotText(ctx, enemy.typed, enemy.x - (remainingTextWidth / 2) - 5, enemy.y - 30, 14, '#00ff00');
+      
+      // 残りの部分
+      drawDotText(ctx, enemy.word.substring(enemy.typed.length), enemy.x + (typedTextWidth / 2) + 5, enemy.y - 30, 14, '#ffffff');
+    });
+
+    // UIパネル
+    ctx.fillStyle = '#001100';
+    ctx.fillRect(10, 10, 180, 55);
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, 180, 55);
+    
+    drawDotText(ctx, `SCORE:${score}`, 100, 30, 14, '#00ff00');
+    drawDotText(ctx, `STAGE:${stage}`, 100, 50, 14, '#00ffff');
+
+    animationFrameIdRef.current = requestAnimationFrame(gameLoop);
+  }, [score, stage, stopBGM, playGameOverSound, startBGM, getSentencesForStage]); // scoreとstageを依存配列に追加
+
   useEffect(() => {
     if (gameState === 'playing') {
-      // ゲーム開始時にBGMを開始
-      const startDelay = setTimeout(() => {
-        startBGM();
-      }, 100);
-      
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      if (!canvas) return; // canvas要素が存在しない場合は何もしない
+
+      // BGMをゲーム開始時に一度だけ開始
+      startBGM();
       
-      const gameLoop = () => {
-        gameTimeRef.current += 1;
-        
-        const spawnInterval = Math.max(300, 500 - stage * 20);
-        if (gameTimeRef.current % spawnInterval === 0 && enemies.length === 0) {
-          const availableSentences = getSentencesForStage(stage);
-          const sentence = availableSentences[Math.floor(Math.random() * availableSentences.length)];
-          const newEnemy = {
-            id: Date.now(),
-            word: sentence.romaji,
-            japanese: sentence.text,
-            x: canvas.width / 2,
-            y: -30,
-            speed: 0.05 + stage * 0.005,
-            typed: ''
-          };
-          setEnemies(prev => [...prev, newEnemy]);
-        }
-
-        setEnemies(prev => {
-          const updated = prev.map(enemy => ({
-            ...enemy,
-            y: enemy.y + enemy.speed
-          }));
-
-          const collision = updated.some(enemy => enemy.y > canvas.height - 50);
-
-          if (collision) {
-            stopBGM();
-            playGameOverSound();
-            setGameState('gameover');
-            return [];
-          }
-
-          return updated.filter(enemy => enemy.y < canvas.height);
-        });
-
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#444';
-        for (let i = 0; i < 100; i++) {
-          const x = (i * 79) % canvas.width;
-          const y = ((i * 113) + gameTimeRef.current * 0.15) % canvas.height;
-          const size = (i % 3) + 1;
-          ctx.fillRect(x, y, size, size);
-        }
-
-        ctx.strokeStyle = '#0a0a0a';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 50) {
-          ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i, canvas.height);
-          ctx.stroke();
-        }
-
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([10, 5]);
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 50);
-        ctx.lineTo(canvas.width, canvas.height - 50);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        enemies.forEach(enemy => {
-          drawEnemyShip(ctx, enemy.x, enemy.y);
-
-          drawDotText(ctx, enemy.japanese, enemy.x, enemy.y + 45, 20, '#ffffff');
-
-          if (enemy.typed) {
-            drawDotText(ctx, enemy.typed, enemy.x - (enemy.word.length - enemy.typed.length) * 4, enemy.y - 30, 14, '#00ff00');
-          }
-          
-          const remaining = enemy.word.substring(enemy.typed.length);
-          drawDotText(ctx, remaining, enemy.x + enemy.typed.length * 4, enemy.y - 30, 14, '#ffffff');
-        });
-
-        ctx.fillStyle = '#001100';
-        ctx.fillRect(10, 10, 180, 55);
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(10, 10, 180, 55);
-        
-        drawDotText(ctx, `SCORE:${score}`, 100, 30, 14, '#00ff00');
-        drawDotText(ctx, `STAGE:${stage}`, 100, 50, 14, '#00ffff');
-
-        animationRef.current = requestAnimationFrame(gameLoop);
-      };
-
-      gameLoop();
+      // ゲームループを開始
+      animationFrameIdRef.current = requestAnimationFrame(gameLoop);
 
       return () => {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-        if (startDelay) {
-          clearTimeout(startDelay);
+        // コンポーネントがアンマウントされるか、gameStateがplayingでなくなった場合にクリーンアップ
+        if (animationFrameIdRef.current) {
+          cancelAnimationFrame(animationFrameIdRef.current);
         }
         stopBGM();
       };
+    } else {
+      // playing状態ではない場合はBGMを停止
+      stopBGM();
     }
-  }, [gameState, enemies, score, stage]);
+  }, [gameState, gameLoop, startBGM, stopBGM]); // gameLoopとstartBGMを依存配列に追加
 
-  const handleKeyPress = (e) => {
-    if (gameState !== 'playing' || enemies.length === 0) return;
+  const handleKeyPress = useCallback((e) => {
+    if (gameState !== 'playing' || enemiesRef.current.length === 0) return; // enemiesRef.currentを使用
 
     const key = e.key.toUpperCase();
     
     if (key.length === 1 && key.match(/[A-Z]/)) {
-      const enemy = enemies[0];
+      const currentEnemies = enemiesRef.current; // 最新の敵リストを取得
+      const enemy = currentEnemies[0];
       const expectedChar = enemy.word[enemy.typed.length];
       
       if (expectedChar === key) {
@@ -403,18 +444,20 @@ const RetroTypingShooter = () => {
         
         if (newTyped === enemy.word) {
           playDefeatSound();
-          const newDefeatedCount = defeatedCount + 1;
-          setDefeatedCount(newDefeatedCount);
-          setScore(s => s + 200 + stage * 50);
-          setEnemies([]);
-          
-          if (newDefeatedCount >= 10) {
-            setStage(s => s + 1);
-            setDefeatedCount(0);
-            playStageUpSound();
-          }
+          setDefeatedCount(prev => {
+            const newDefeated = prev + 1;
+            if (newDefeated >= 10) {
+              setStage(s => s + 1);
+              playStageUpSound();
+              return 0; // 0にリセット
+            }
+            return newDefeated;
+          });
+          setScore(s => s + 200 + stage * 50); // scoreとstageは最新のstateが自動的に参照される
+          setEnemies([]); // 敵を撃破したのでリストから削除
+          // 敵が全ていなくなった後、新しい敵が生成されるのはgameLoopの責務
         } else {
-          setEnemies([{ ...enemy, typed: newTyped }]);
+          setEnemies(prev => prev.map(e => e.id === enemy.id ? { ...e, typed: newTyped } : e));
         }
       } else if (mode === 'hard') {
         stopBGM();
@@ -422,12 +465,12 @@ const RetroTypingShooter = () => {
         setGameState('gameover');
       }
     }
-  };
+  }, [gameState, mode, playTypeSound, playDefeatSound, playGameOverSound, playStageUpSound, stopBGM, stage]); // stageを依存配列に追加
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, enemies, mode, defeatedCount, stage]);
+  }, [handleKeyPress]); // handleKeyPressを依存配列に追加
 
   const startGame = (selectedMode) => {
     playMenuSelectSound();
